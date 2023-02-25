@@ -40,7 +40,7 @@ fn extract_regex(re: &Regex, x: String) -> (String, String) {
             (
                 x.replace(
                     &caps["frames"],
-                    String::from_utf8(vec![b'*'; caps["frames"].len()])
+                    String::from_utf8(vec![b'#'; caps["frames"].len()])
                         .unwrap()
                         .as_str(),
                 ),
@@ -62,7 +62,7 @@ fn test_regex_simple() {
     let re = get_regex();
     let source: String = "RenderPass_Beauty_1_00000.exr".to_string();
     let expected: (String, String) = (
-        "RenderPass_Beauty_1_*****.exr".to_string(),
+        "RenderPass_Beauty_1_#####.exr".to_string(),
         "00000".to_string(),
     );
     assert_eq!(expected, extract_regex(&re, source))
@@ -102,7 +102,7 @@ fn test_parse_string() {
     let vec_toto: Vec<String> = vec!["001".to_string(), "002".to_string(), "003".to_string()];
     let vec_foo: Vec<String> = vec!["None".to_string()];
     let expected: HashMap<String, Vec<String>> = HashMap::from([
-        ("toto.***.tiff".to_string(), vec_toto),
+        ("toto.###.tiff".to_string(), vec_toto),
         ("foo.exr".to_string(), vec_foo),
     ]);
     assert_eq!(expected, parse_result(source));
@@ -161,6 +161,22 @@ fn test_convert_vec_to_str() {
     assert_eq!(expected, convert_vec_to_str(source));
 }
 
+fn concat_line(main_string: String, frame_string: String) -> String {
+    let buf: bool = false;
+    if buf {
+        let from: String = String::from("#####");
+        main_string.replace(&from, &frame_string)
+    } else {
+        format!("{}@{}", main_string, frame_string)
+    }
+}
+#[test]
+fn test_concat_line() {
+    let main_string: String = String::from("toto");
+    let frame_string: String = String::from("bar");
+    let expected: String = String::from("toto@bar");
+    assert_eq!(expected, concat_line(main_string, frame_string));
+}
 pub fn basic(frames: Vec<String>) -> Vec<String> {
     let frames_dict: HashMap<String, Vec<String>> = parse_result(frames);
     let mut out_frames: Vec<String> = Vec::new();
@@ -171,7 +187,7 @@ pub fn basic(frames: Vec<String>) -> Vec<String> {
             let i = convert_vec(value);
             let j = group_continuity(&i);
             let k = convert_vec_to_str(j);
-            out_frames.push(format!("{}@{}", key, k));
+            out_frames.push(concat_line(key, k));
         }
     }
     out_frames
@@ -186,7 +202,7 @@ pub fn listing(root_path: String, frames: Vec<String>) -> Vec<String> {
             out_frames.push(key);
         } else {
             let to = value.first().unwrap();
-            let from = String::from_utf8(vec![b'*'; to.len()]).unwrap();
+            let from = String::from_utf8(vec![b'#'; to.len()]).unwrap();
             let new_path = &key.replace(&from, to);
             if re.is_match(new_path) {
                 let path = format!("{}{}", root_path, new_path);
@@ -195,7 +211,7 @@ pub fn listing(root_path: String, frames: Vec<String>) -> Vec<String> {
             let i = convert_vec(value);
             let j = group_continuity(&i);
             let k = convert_vec_to_str(j);
-            out_frames.push(format!("{}@{}", key, k));
+            out_frames.push(concat_line(key, k));
         }
     }
     out_frames

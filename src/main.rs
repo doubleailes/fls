@@ -9,6 +9,10 @@ struct Args {
     #[arg(short, long)]
     list: bool,
 
+    /// Display Buf format
+    #[arg(short, long)]
+    buf: bool,
+
     /// Path to parse
     #[arg(default_value_t = String::from("./"), last = true)]
     path: String,
